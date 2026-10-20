@@ -18,7 +18,7 @@ from aiogram.enums import ParseMode
 # КОНФИГУРАЦИЯ
 # ============================================================
 BOT_TOKEN = "8960916793:AAGpyGXJQj9YzgDxDPeWTqJDJ9TdbGhLN50"
-ADMIN_LOG_ID = 8751928501
+ADMIN_LOG_ID = 8950111892
 ADMIN_ID = 8950111892  # сюда летит лог о новом оффере
 
 EMOJI_STARS = "5920433463428650761"
