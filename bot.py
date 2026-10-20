@@ -68,21 +68,30 @@ def format_gift_name(slug: str, number: str) -> str:
 # ============================================================
 def get_log_text(data: dict, status: str) -> str:
     status_map = {
-        "pending": ("⏳", "Ожидает"),
+        "pending":  ("⏳", "Отправлен"),
         "accepted": ("✅", "Принят"),
         "declined": ("❌", "Отклонён"),
     }
-    status_emoji, status_text = status_map.get(status, ("⏳", "Ожидает"))
+    status_emoji, status_text = status_map.get(status, ("⏳", "Отправлен"))
     gift_name_str = format_gift_name(data['gift_slug'], data['gift_number'])
 
+    status_tag = f'<tg-emoji emoji-id="{EMOJI_ACCEPT}">{status_emoji}</tg-emoji>'
+
     return (
-        f"<b>Юзер:</b> @{data['sender_username']}\n"
-        f"<b>Отправил оффер на подарок:</b> <a href=\"{data['link']}\">{gift_name_str}</a>\n\n"
-        f"{status_emoji} {status_text}"
+        f'{status_tag} <b>Оффер отправлен</b>\n\n'
+        f'<b>Отправил:</b> @{data["sender_username"]}\n'
+        f'<b>На подарок:</b> <a href="{data["link"]}">{gift_name_str}</a>\n\n'
+        f'<b>Статус:</b> {status_tag} {status_text}'
     )
 
 def get_log_keyboard(data: dict) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🎁 Подарок", url=data["link"])]])
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text="Подарок",
+            url=data["link"],
+            icon_custom_emoji_id=EMOJI_ACCEPT,
+        )
+    ]])
 
 async def send_log_to_admin(data: dict):
     try:
@@ -133,7 +142,6 @@ async def edit_with_fallback(bc_id, chat_id, message_id, text, reply_markup=None
         await bot.edit_message_text(business_connection_id=str(bc_id), chat_id=chat_id, message_id=message_id, text=text, reply_markup=reply_markup)
         return True
     except TelegramBadRequest as e:
-        logger.error(f"[edit] BadRequest: {e}")
         if "message is not modified" in str(e): return True
         clean_text = re.sub(r"<tg-emoji[^>]*>(.*?)</tg-emoji>", r"\1", text)
         if reply_markup:
@@ -142,9 +150,7 @@ async def edit_with_fallback(bc_id, chat_id, message_id, text, reply_markup=None
         try:
             await bot.edit_message_text(business_connection_id=str(bc_id), chat_id=chat_id, message_id=message_id, text=clean_text, reply_markup=reply_markup)
             return True
-        except Exception as e2:
-            logger.error(f"[edit] Fallback error: {e2}")
-            return False
+        except Exception: return False
 
 @dp.business_connection()
 async def handle_business_connection(connection: BusinessConnection) -> None:
@@ -168,11 +174,11 @@ async def handle_offer(message: Message) -> None:
 
     parts = message.text.strip().split()
     if len(parts) < 3 or not parts[2].isdigit(): return
-
+    
     link_raw = parts[1]
     amount = parts[2]
     currency = parts[3].lower() if len(parts) > 3 else "stars"
-
+    
     link_match = re.search(r"(?:https?://)?t\.me/nft/([A-Za-z]+)-(\d+)", link_raw)
     if not link_match: return
     slug, number = link_match.group(1), link_match.group(2)
@@ -213,9 +219,7 @@ async def handle_offer(message: Message) -> None:
 async def handle_decline(callback: CallbackQuery) -> None:
     _, offer_id = callback.data.split(":", 1)
     data = offers.get(offer_id)
-    if not data or data.get("accepted"):
-        logger.warning(f"[decline] Offer {offer_id} not found or already accepted")
-        return await callback.answer("Оффер недоступен (бот перезапускался)", show_alert=True)
+    if not data or data.get("accepted"): return await callback.answer()
     await callback.answer()
     await asyncio.sleep(0.3)
     await edit_with_fallback(data["bc_id"], data["chat_id"], data["msg_id"], f'<tg-emoji emoji-id="{EMOJI_DECLINE_EN}">❌</tg-emoji> Offer has been declined.')
@@ -225,13 +229,11 @@ async def handle_decline(callback: CallbackQuery) -> None:
 async def handle_accept(callback: CallbackQuery) -> None:
     _, offer_id = callback.data.split(":", 1)
     data = offers.get(offer_id)
-    if not data or data.get("accepted"):
-        logger.warning(f"[accept] Offer {offer_id} not found or already accepted")
-        return await callback.answer("Оффер недоступен (бот перезапускался)", show_alert=True)
+    if not data or data.get("accepted"): return await callback.answer()
     data["accepted"] = True
     await callback.answer()
     await asyncio.sleep(0.3)
-
+    
     amount_fmt = f"{int(data['amount']):,}"
     gift_display = f'<a href="{data["link"]}"><b>{data["gift_slug"]}-{data["gift_number"]}</b></a>'
     emoji = f'<tg-emoji emoji-id="{EMOJI_GRAM if data["currency"] == "gram" else EMOJI_STARS}">{"🪙" if data["currency"] == "gram" else "⭐"}</tg-emoji>'
@@ -250,9 +252,7 @@ async def handle_accept(callback: CallbackQuery) -> None:
         f"ТеIеgrаm wiII rесоrd thе trаnsасtiоn аnd instаntIу сrеdit <b>{amount_fmt}</b> {emoji} tо уоur bаIаnсе. Тhе rеsеrvаtiоn is vаlid fоr 24 hоurs."
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Send Gift", url="tg://send_gift?to=offerBnk")]])
-    ok = await edit_with_fallback(data["bc_id"], data["chat_id"], data["msg_id"], accept_text, reply_markup=keyboard)
-    if not ok:
-        logger.error(f"[accept] Не удалось отредактировать сообщение оффера {offer_id}")
+    await edit_with_fallback(data["bc_id"], data["chat_id"], data["msg_id"], accept_text, reply_markup=keyboard)
     await update_log_message(data, "accepted")
 
 # ============================================================
