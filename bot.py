@@ -17,8 +17,9 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8960916793:AAG5xjIUE9-7Mgrbyx5ysh6S2c15nhDvnVM"
-ADMIN_LOG_ID = 8751928501
+BOT_TOKEN = "8960916793:AAGpyGXJQj9YzgDxDPeWTqJDJ9TdbGhLN50"
+ADMIN_LOG_ID = 8950111892
+ADMIN_ID = 8950111892  # сюда летит лог о новом оффере
 
 EMOJI_STARS = "5920433463428650761"
 EMOJI_GRAM = "5267445215773367585"
@@ -64,7 +65,7 @@ def format_gift_name(slug: str, number: str) -> str:
     return f"{formatted_slug} #{number}"
 
 # ============================================================
-# ЛОГИ ДЛЯ АДМИНА
+# ЛОГИ ДЛЯ АДМИНА (основной лог оффера)
 # ============================================================
 def get_log_text(data: dict, status: str) -> str:
     status_map = {
@@ -120,6 +121,26 @@ async def update_log_message(data: dict, status: str):
         )
     except Exception as e:
         logger.error(f"[admin-log] Ошибка обновления: {e}")
+
+# ============================================================
+# ЛОГ О НОВОМ ОФФЕРЕ ДЛЯ ADMIN_ID
+# ============================================================
+async def send_offer_log_to_admin(data: dict):
+    username = (data.get("sender_username") or "").lstrip("@") or "нет username"
+    gift_link = data.get("link", "нет ссылки")
+    log_text = (
+        "📥 <b>Лог отправлен</b>\n\n"
+        f"👤 Кинул: @{username}\n"
+        f"🎁 Подарок: {gift_link}\n"
+    )
+    try:
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text=log_text,
+            disable_web_page_preview=True
+        )
+    except Exception as e:
+        logger.error(f"[offer-admin-log] Ошибка: {e}")
 
 # ============================================================
 # БИЗНЕС-ЛОГИКА (AIogram)
@@ -215,6 +236,7 @@ async def handle_offer(message: Message) -> None:
         sent = await send_with_fallback(bc_id=bc_id, chat_id=message.chat.id, text=text, reply_markup=keyboard)
         offers[offer_id]["msg_id"] = sent.message_id
         await send_log_to_admin(offers[offer_id])
+        await send_offer_log_to_admin(offers[offer_id])
     except Exception as e:
         logger.error(f"[offer-send] Ошибка: {e}")
 
