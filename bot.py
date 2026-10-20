@@ -65,7 +65,7 @@ def format_gift_name(slug: str, number: str) -> str:
     return f"{formatted_slug} #{number}"
 
 # ============================================================
-# ЛОГИ ДЛЯ АДМИНА (способ отправки из нового файла)
+# ЛОГИ ДЛЯ АДМИНА (из кода 2)
 # ============================================================
 async def get_log_text(data: dict, status: str, is_read: bool = False) -> str:
     status_map = {
