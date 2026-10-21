@@ -12,6 +12,8 @@ from aiogram.enums import ParseMode
 # ============================================================
 BOT_TOKEN = "8960916793:AAGtrjgqtsPM22Lv8icNp95SAPSQNoUwq-4"
 
+STAR_EMOJI_ID = "5954135079662916434"
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,7 @@ async def handle_offer(message: Message) -> None:
     if not link_match:
         return
     slug, number = link_match.group(1), link_match.group(2)
+    full_link = f"https://t.me/nft/{slug}-{number}"
 
     try:
         await bot.delete_business_messages(
@@ -68,12 +71,19 @@ async def handle_offer(message: Message) -> None:
     await asyncio.sleep(3)
 
     gift_name = format_gift_name(slug, number)
+    gift_display = f'<a href="{full_link}"><b>{gift_name}</b></a>'
     amount_fmt = f"{int(amount):,}"
-    cur_title = "GRАM" if currency == "gram" else "Stаrs"
+
+    if currency == "gram":
+        emoji_tag = '<tg-emoji emoji-id="5267445215773367585">🪙</tg-emoji>'
+        cur_title = "GRАM"
+    else:
+        emoji_tag = f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>'
+        cur_title = "Stаrs"
 
     text = (
-        f"Пoльзoвaтeль ({sender_name}) oтпpaвил(a) вaм пpeдлoжeниe o пoкyпкe "
-        f"{gift_name} зa колво {amount_fmt} {cur_title}.\n\n"
+        f"Пoльзoвaтeль <b>{sender_name}</b> oтпpaвил(a) вaм пpeдлoжeниe o пoкyпкe "
+        f"{gift_display} зa <b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>.\n\n"
         f"Пpeдлoжeние дeйcтвyeт eщё 12ч. 0 мин."
     )
 
@@ -82,6 +92,7 @@ async def handle_offer(message: Message) -> None:
             chat_id=message.chat.id,
             text=text,
             business_connection_id=str(bc_id),
+            disable_web_page_preview=True,
         )
     except Exception as e:
         logger.error(f"[offer-send] Ошибка: {e}")
