@@ -14,7 +14,7 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8913883981:AAF4h0QCJbAd45G2DRJvX8xQ-4gJSnZMF-c"
+BOT_TOKEN = "8960916793:AAE-Q8SxxfiOERVEel9ASYLp-CdqWY3qKq0"
 
 STAR_EMOJI_ID = "5848259999763011021"
 GRAM_EMOJI_ID = "5303250111852228815"
@@ -267,21 +267,6 @@ async def handle_accept(callback: CallbackQuery) -> None:
     await edit_with_fallback(
         data["bc_id"], data["chat_id"], data["msg_id"], text, reply_markup=keyboard
     )
-
-# ============================================================
-# КОМАНДА /lang
-# ============================================================
-@dp.message(F.text == "/lang")
-async def cmd_lang(message: Message):
-    text = (
-        "<b>Доступные языки:</b>\n\n"
-        "🇷🇺 Русский (ru)\n"
-        "🇬🇧 English (en)\n"
-        "🇨🇳 中文 (cn)\n"
-        "🇯🇵 日本語 (jp)\n\n"
-        "Использование: <code>qq &lt;ссылка&gt; &lt;сумма&gt; &lt;stars|gram&gt; &lt;язык&gt;</code>"
-    )
-    await message.answer(text)
 
 # ============================================================
 # ЗАПУСК
