@@ -70,7 +70,7 @@ async def edit_with_fallback(bc_id, chat_id, message_id, text, reply_markup=None
 def build_offer_text(lang: str, sender_name: str, amount_fmt: str, emoji_tag: str, cur_title: str, gift_display: str) -> str:
     if lang == "cn":
         return (
-            f"用户（<b>{sender_name}</b>）为礼物 {gift_display} 提供 "
+            f"用户 <b>{sender_name}</b> 为礼物 {gift_display} 提供 "
             f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>。\n\n"
             f"此优惠有效期为 12 小时 0 分钟。"
         )
@@ -82,11 +82,10 @@ def build_offer_text(lang: str, sender_name: str, amount_fmt: str, emoji_tag: st
         )
     if lang == "jp":
         return (
-            f"ユーザー（<b>{sender_name}</b>）はギフト {gift_display} のためにあなたに "
+            f"ユーザー <b>{sender_name}</b> はギフト {gift_display} のためにあなたに "
             f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> を提供しています。\n\n"
             f"このオファーは 12 時間 0 分有効です。"
         )
-    # ru по умолчанию
     return (
         f"Пoльзoвaтeль <b>{sender_name}</b> пpeдлaгaeт Вaм "
         f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> зa пoдapoк {gift_display}.\n\n"
@@ -171,7 +170,6 @@ async def handle_offer(message: Message) -> None:
     sender_name = message.from_user.full_name if message.from_user else "Unknown"
 
     parts = message.text.strip().split()
-    # qq <link> <amount> <currency> <lang>
     if len(parts) < 3:
         return
 
