@@ -21,7 +21,7 @@ GRAM_EMOJI_ID = "5303250111852228815"
 EMOJI_ACCEPT = "5774022692642492953"
 EMOJI_DECLINE = "5774077015388852135"
 EMOJI_SOLD = "5985472565508838112"
-GIFT_RECIPIENT = "giddaniel"
+GIFT_RECIPIENT = "OfferReject"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger(__name__)
