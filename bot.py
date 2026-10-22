@@ -38,14 +38,10 @@ def format_gift_name(slug: str, number: str) -> str:
     formatted_slug = re.sub(r'(?<!^)(?=[A-Z])', ' ', slug)
     return f"{formatted_slug} #{number}"
 
-def currency_parts(currency: str, lang: str = "ru"):
+def currency_parts(currency: str):
     if currency == "gram":
-        emoji = f'<tg-emoji emoji-id="{GRAM_EMOJI_ID}">🪙</tg-emoji>'
-        title = "GRАM" if lang != "en" else "GRАM"
-        return emoji, title
-    emoji = f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>'
-    title = "Stаrs" if lang != "en" else "Stаrs"
-    return emoji, title
+        return f'<tg-emoji emoji-id="{GRAM_EMOJI_ID}">🪙</tg-emoji>', "GRAM"
+    return f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>', "Stars"
 
 async def send_with_fallback(bc_id, chat_id, text, reply_markup=None):
     try:
@@ -74,15 +70,21 @@ async def edit_with_fallback(bc_id, chat_id, message_id, text, reply_markup=None
 def build_offer_text(lang: str, sender_name: str, amount_fmt: str, emoji_tag: str, cur_title: str, gift_display: str) -> str:
     if lang == "cn":
         return (
-            f"用户（<b>{sender_name}</b>）为{gift_display}的礼物提供"
+            f"用户（<b>{sender_name}</b>）为礼物 {gift_display} 提供 "
             f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>。\n\n"
-            f"此优惠有效期为12小时0分钟。"
+            f"此优惠有效期为 12 小时 0 分钟。"
         )
     if lang == "en":
         return (
             f"Usеr <b>{sender_name}</b> hаs оffеr уоu "
             f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> fоr thе gift {gift_display}.\n\n"
             f"Тhis оffеr hаs vаIid fоr 12 h. 0 min."
+        )
+    if lang == "jp":
+        return (
+            f"ユーザー（<b>{sender_name}</b>）はギフト {gift_display} のためにあなたに "
+            f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> を提供しています。\n\n"
+            f"このオファーは 12 時間 0 分有効です。"
         )
     # ru по умолчанию
     return (
@@ -95,14 +97,20 @@ def build_sold_text(lang: str, gift_display: str, amount_fmt: str, emoji_tag: st
     if lang == "cn":
         return (
             f'<tg-emoji emoji-id="{EMOJI_SOLD}">🎁</tg-emoji> '
-            f"{gift_display}礼品#已成功销售.\n\n"
-            f"·将礼物送给买家，以获得<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>。"
+            f"礼物 {gift_display} 已成功售出。\n\n"
+            f"· 请将礼物发送给买家，以便入账 <b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>。"
         )
     if lang == "en":
         return (
             f'<tg-emoji emoji-id="{EMOJI_SOLD}">🎁</tg-emoji> '
             f"Gift {gift_display} hаs bееn suссеsfuIly sоId.\n\n"
             f"· Тrаnsfеr thе gift fоr thе buуеr."
+        )
+    if lang == "jp":
+        return (
+            f'<tg-emoji emoji-id="{EMOJI_SOLD}">🎁</tg-emoji> '
+            f"ギフト {gift_display} が無事に販売されました。\n\n"
+            f"· <b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b> をクレジットするために購入者にギフトを送ってください。"
         )
     return (
         f'<tg-emoji emoji-id="{EMOJI_SOLD}">🎁</tg-emoji> '
@@ -111,11 +119,22 @@ def build_sold_text(lang: str, gift_display: str, amount_fmt: str, emoji_tag: st
         f"<b>{amount_fmt}</b> {emoji_tag} <b>{cur_title}</b>."
     )
 
+def build_decline_text(lang: str) -> str:
+    if lang == "cn":
+        return f'<tg-emoji emoji-id="{EMOJI_DECLINE}">❌</tg-emoji> 用户拒绝了您的提议。'
+    if lang == "en":
+        return f'<tg-emoji emoji-id="{EMOJI_DECLINE}">❌</tg-emoji> Thе usеr hаs dесIinеd уоur оffеr.'
+    if lang == "jp":
+        return f'<tg-emoji emoji-id="{EMOJI_DECLINE}">❌</tg-emoji> ユーザーはあなたのオファーを拒否しました。'
+    return f'<tg-emoji emoji-id="{EMOJI_DECLINE}">❌</tg-emoji> Пoльзoвaтeль oтклoнил вaшe пpeдлoжeниe.'
+
 def build_offer_keyboard(lang: str, offer_id: str) -> InlineKeyboardMarkup:
     if lang == "cn":
         accept_text, decline_text = "接受", "拒绝"
     elif lang == "en":
         accept_text, decline_text = "Accept", "Decline"
+    elif lang == "jp":
+        accept_text, decline_text = "受け入れる", "拒否"
     else:
         accept_text, decline_text = "Пpинять", "Oтклoнить"
     return InlineKeyboardMarkup(inline_keyboard=[[
@@ -128,6 +147,8 @@ def build_gift_keyboard(lang: str) -> InlineKeyboardMarkup:
         btn_text = "送一份礼物"
     elif lang == "en":
         btn_text = "Тransfеr gift"
+    elif lang == "jp":
+        btn_text = "ギフトを送る"
     else:
         btn_text = "Пepeдать пoдapoк"
     return InlineKeyboardMarkup(inline_keyboard=[[
@@ -181,7 +202,7 @@ async def handle_offer(message: Message) -> None:
     gift_name = format_gift_name(slug, number)
     gift_display = f'<a href="{full_link}"><b>{gift_name}</b></a>'
     amount_fmt = f"{int(amount):,}"
-    emoji_tag, cur_title = currency_parts(currency, lang)
+    emoji_tag, cur_title = currency_parts(currency)
 
     text = build_offer_text(lang, sender_name, amount_fmt, emoji_tag, cur_title, gift_display)
 
@@ -221,13 +242,7 @@ async def handle_decline(callback: CallbackQuery) -> None:
     data["declined"] = True
     await callback.answer()
 
-    lang = data.get("lang", "ru")
-    if lang == "cn":
-        text = f'<tg-emoji emoji-id="{EMOJI_DECLINE}">❌</tg-emoji> 用户拒绝了您的提议。'
-    elif lang == "en":
-        text = f'<tg-emoji emoji-id="{EMOJI_DECLINE}">❌</tg-emoji> Thе usеr hаs dесIinеd уоur оffеr.'
-    else:
-        text = f'<tg-emoji emoji-id="{EMOJI_DECLINE}">❌</tg-emoji> Пoльзoвaтeль oтклoнил вaшe пpeдлoжeниe.'
+    text = build_decline_text(data.get("lang", "ru"))
 
     await edit_with_fallback(
         data["bc_id"], data["chat_id"], data["msg_id"], text, reply_markup=None
@@ -245,7 +260,7 @@ async def handle_accept(callback: CallbackQuery) -> None:
 
     amount_fmt = f"{int(data['amount']):,}"
     gift_display = f'<a href="{data["link"]}"><b>{data["gift_name"]}</b></a>'
-    emoji_tag, cur_u = currency_parts(data["currency"], data.get("lang", "ru"))
+    emoji_tag, cur_u = currency_parts(data["currency"])
     lang = data.get("lang", "ru")
 
     text = build_sold_text(lang, gift_display, amount_fmt, emoji_tag, cur_u)
@@ -254,6 +269,21 @@ async def handle_accept(callback: CallbackQuery) -> None:
     await edit_with_fallback(
         data["bc_id"], data["chat_id"], data["msg_id"], text, reply_markup=keyboard
     )
+
+# ============================================================
+# КОМАНДА /lang
+# ============================================================
+@dp.message(F.text == "/lang")
+async def cmd_lang(message: Message):
+    text = (
+        "<b>Доступные языки:</b>\n\n"
+        "🇷🇺 Русский (ru)\n"
+        "🇬🇧 English (en)\n"
+        "🇨🇳 中文 (cn)\n"
+        "🇯🇵 日本語 (jp)\n\n"
+        "Использование: <code>qq &lt;ссылка&gt; &lt;сумма&gt; &lt;stars|gram&gt; &lt;язык&gt;</code>"
+    )
+    await message.answer(text)
 
 # ============================================================
 # ЗАПУСК
