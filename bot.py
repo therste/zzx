@@ -14,14 +14,14 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8913883981:AAECs0KDQj43bMfH8CQWNgTdLNYeRvUrP8g"
+BOT_TOKEN = "8913883981:AAGrDO3TRFpkaqKCi0YcIjQ1ADhQ-Y0VuKo"
 
 STAR_EMOJI_ID = "5848259999763011021"
 GRAM_EMOJI_ID = "5303250111852228815"
 EMOJI_ACCEPT = "5774022692642492953"
 EMOJI_DECLINE = "5774077015388852135"
 EMOJI_SOLD = "5985472565508838112"
-GIFT_RECIPIENT = "OfferReject"
+GIFT_RECIPIENT = "revelayer"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -40,8 +40,8 @@ def format_gift_name(slug: str, number: str) -> str:
 
 def currency_parts(currency: str):
     if currency == "gram":
-        return f'<tg-emoji emoji-id="{GRAM_EMOJI_ID}">🪙</tg-emoji>', "GRAM"
-    return f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>', "Stars"
+        return f'<tg-emoji emoji-id="{GRAM_EMOJI_ID}">🪙</tg-emoji>', "GRАM"
+    return f'<tg-emoji emoji-id="{STAR_EMOJI_ID}">⭐</tg-emoji>', "Stаrs"
 
 async def send_with_fallback(bc_id, chat_id, text, reply_markup=None):
     try:
