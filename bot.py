@@ -14,14 +14,14 @@ from aiogram.enums import ParseMode
 # ============================================================
 # КОНФИГУРАЦИЯ
 # ============================================================
-BOT_TOKEN = "8808615314:AAGScSDkFDzbfmx_ai1QD2NRBQ7fNTpcjwI"
+BOT_TOKEN = "8677458277:AAFcdKOE4j-Nf3mPWV144yndxtlBXsPAs34"
 
 STAR_EMOJI_ID = "5848259999763011021"
 GRAM_EMOJI_ID = "5303250111852228815"
 EMOJI_ACCEPT = "5774022692642492953"
 EMOJI_DECLINE = "5774077015388852135"
 EMOJI_SOLD = "5985472565508838112"
-GIFT_RECIPIENT = "revelayer"
+GIFT_RECIPIENT = "huzzin"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger(__name__)
